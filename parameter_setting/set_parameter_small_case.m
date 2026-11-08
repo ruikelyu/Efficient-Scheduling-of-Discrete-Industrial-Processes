@@ -5,7 +5,8 @@ param = {};
 
 %% prcessing parameters
 % excel file for the original parameters
-filename = ".\parameter_setting\load_parameters_small_case.xlsx";
+root = fileparts(fileparts(mfilename("fullpath")));
+filename = fullfile(root, "parameter_setting", "load_parameters_small_case.xlsx");
 
 % nominal_power
 param.nominal_power = xlsread(filename, 'nominal_power');
@@ -27,8 +28,7 @@ price_days = [100, 100, 100, 100, 200, 200; ...
 param.price_days = price_days;
 clear price day_price
 
-save(".\parameter_setting\param_small_case.mat", "param")
-
+save(fullfile(root, "parameter_setting", "param_small_case.mat"), "param")
 
 
 

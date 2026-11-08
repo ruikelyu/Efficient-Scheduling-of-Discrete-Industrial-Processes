@@ -4,11 +4,13 @@
 
 %% read parameters & define variables
 yalmip("clear");
+root = fileparts(fileparts(mfilename("fullpath")));
+addpath(fullfile(root, "cRTN_model"));
 % binding time interval, hour - 5 min = 5/60 hour
 delta = 5 / 60;
 
 % load the original parameters
-load(".\parameter_setting\param_zhang_2017.mat");
+load(fullfile(root, "parameter_setting", "param_zhang_2017.mat"));
 % if day_index is not provided, set it to 26
 if ~exist('day_index', 'var')
     day_index = 26;
@@ -17,7 +19,7 @@ end
 if ~exist('NOF_HEAT', 'var')
     NOF_HEAT = 3;
 end
-% if gap is not provided, set it to 0.01
+% if gap is not provided, set it to 1e-4
 if ~exist('gap', 'var')
     gap = 1e-4;
 end
@@ -45,23 +47,28 @@ E_T = delta * permute(sum(sum(temp .* D_IKT, 1), 2), [1, 3, 2]);% 1 * NOF_INTERV
 cost = E_T * price;
 
 %% solve
-TimeLimit = 15000;
+if ~exist("TIME_LIMIT", "var")
+    TIME_LIMIT = 15000;
+end
 % set the solver, time limit, and optimality gap
 ops = sdpsettings('debug',1,'solver','GUROBI', 'verbose', 1,  ...
-    'gurobi.TimeLimit', TimeLimit, 'gurobi.MIPGap', gap);
-ops.gurobi.TuneTimeLimit = TimeLimit;
+    'gurobi.TimeLimit', TIME_LIMIT, 'gurobi.MIPGap', gap);
+ops.gurobi.TuneTimeLimit = TIME_LIMIT;
 
 sol = optimize(cons, cost, ops);
+if sol.problem ~= 0
+    error("Scheduling:SolverFailed", "Gurobi failed: %s", sol.info);
+end
 
 %% save
-result = {};
+result = struct();
 result.E_T = value(E_T);
 result.R_IT = value(R_IT);
 result.D_IKT = value(D_IKT);
 
 % save according to the day_index, NOF_HEAT, and gap
-save(".\results\flxb_crtn_day_" + day_index + "_heat_" + NOF_HEAT + "_gap_" + gap + ".mat", "result", "sol");
-
-
+save(fullfile(root, "results", ...
+    "flxb_crtn_day_" + day_index + "_heat_" + NOF_HEAT + "_gap_" + gap + ".mat"), ...
+    "result", "sol");
 
 

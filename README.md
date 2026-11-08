@@ -94,31 +94,59 @@ Where:
 - `set_parameter_zhang_rtn.m`: Converts technical parameters to model parameters
 - `rt_hrl_lmps_202208.xlsx`: Real-time electricity prices from PJM market
 
-## Usage Instructions
+## Quick Start
 
-### 1. Basic Setup
+The repository provides MATLAB entry points that work regardless of the current
+MATLAB folder. Before running a model, install:
+
+- MATLAB R2024b or newer
+- [YALMIP](https://yalmip.github.io/)
+- [Gurobi](https://www.gurobi.com/) with its MATLAB interface and a valid license
+
+In MATLAB, run:
+
 ```matlab
-% Set current directory to project root
 cd('path/to/Efficient-Scheduling-of-Discrete-Industrial-Processes')
-
-% Run main cRTN model
-run('cRTN_model/main_flxb_crtn.m')
+setup_project
+check_installation
+[result, sol] = run_demo;
 ```
 
-### 2. Parameter Configuration
-Key parameters in `main_flxb_crtn.m`:
-- `NOF_HEAT`: Number of production batches (default: 8)
-- `day_index`: Day index for electricity prices (1-15)
-- `gap`: Optimality gap for solver (default: 1e-4)
+`run_demo` runs the small case with a 5-minute default time limit and saves the
+result under `results/`. For the full flexible cRTN model:
 
-### 3. Model Comparison
+```matlab
+[result, sol] = run_crtn("NumberOfHeats", 3, ...
+    "DayIndex", 26, "Gap", 1e-4, "TimeLimit", 15000);
+```
+
+The full model can take a long time. Start with a smaller `TimeLimit` and a
+looser `Gap` to verify the installation.
+
+### Model Comparison
 ```matlab
 % Compare RTN vs cRTN performance
 run('rtn_model/main_flxb_rtn.m')  % Legacy RTN
 run('cRTN_model/main_flxb_crtn.m') % Proposed cRTN
 ```
 
-### 4. Scalability Testing
+### Parameter Configuration
+
+The full-model wrapper accepts:
+
+- `NumberOfHeats`: production target (default: 3)
+- `DayIndex`: electricity-price day, 1–31 (default: 26)
+- `Gap`: Gurobi relative MIP gap (default: `1e-4`)
+- `TimeLimit`: solver limit in seconds (default: `15000`)
+
+Parameters can also be regenerated from the Excel files:
+
+```matlab
+run('parameter_setting/set_parameter_small_case.m')
+run('parameter_setting/set_parameter_zhang_rtn.m')
+```
+
+### Scalability Testing
 ```matlab
 % Test with different production targets
 run('cRTN_model/test_crtn_heat.m')
@@ -159,7 +187,12 @@ run('rtn_model/test_rtn_heat.m')
 - MATLAB R2024b or later
 - YALMIP optimization toolbox
 - Gurobi solver (V12.0.0 or later)
-- Statistics and Machine Learning Toolbox
+- A valid Gurobi license
+
+If `check_installation` reports a missing dependency, install it and add it to
+the MATLAB path before retrying. The model scripts use YALMIP and Gurobi
+directly; no Statistics and Machine Learning Toolbox functions are required
+for the supplied examples.
 
 ## Citation
 If you use this code in your research, please cite:

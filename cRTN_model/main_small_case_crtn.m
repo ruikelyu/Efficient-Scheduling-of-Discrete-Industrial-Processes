@@ -2,15 +2,19 @@
 
 %% read parameters & define variables
 yalmip("clear");
+root = fileparts(fileparts(mfilename("fullpath")));
+addpath(fullfile(root, "cRTN_model"));
 
 delta = 60 / 60;% 1 hour
 
 % load the original parameters
-load(".\parameter_setting\param_small_case.mat");
+load(fullfile(root, "parameter_setting", "param_small_case.mat"));
 NOF_INTERVAL = length(param.price_days);
 NOF_HEAT = param.production_target;
 
-scenario = 2;
+if ~exist("scenario", "var")
+    scenario = 2;
+end
 price = param.price_days(:, scenario);
 
 % add variables and parameters
@@ -34,17 +38,22 @@ cost = E_T * price;
 cost = cost + sum(sum(E_T .* E_T));
 
 %% solve
-TimeLimit = 7200;
+if ~exist("TIME_LIMIT", "var")
+    TIME_LIMIT = 7200;
+end
 % ops = sdpsettings('debug',1,'solver','GUROBI', 'verbose', 0, ...
-%     'gurobi.TimeLimit', TimeLimit);
+%     'gurobi.TimeLimit', TIME_LIMIT);
 ops = sdpsettings('debug',1,'solver','GUROBI', 'verbose', 1,  ...
-    'gurobi.TimeLimit', TimeLimit);
-ops.gurobi.TuneTimeLimit = TimeLimit;
+    'gurobi.TimeLimit', TIME_LIMIT);
+ops.gurobi.TuneTimeLimit = TIME_LIMIT;
 
-sol = optimize(cons, cost, ops)
+sol = optimize(cons, cost, ops);
+if sol.problem ~= 0
+    error("Scheduling:SolverFailed", "Gurobi failed: %s", sol.info);
+end
 
 %% save
-result = {};
+result = struct();
 result.E_T = value(E_T);
 result.R_IT = value(R_IT);
 result.D_IKT = value(D_IKT);
@@ -52,8 +61,8 @@ result.u_RT = value(u_RT);
 result.on_RT = value(on_RT);
 
 % save
-save(".\results\crtn_small_case_scenario_" + scenario + ".mat", "result", "sol");
-
+save(fullfile(root, "results", "crtn_small_case_scenario_" + scenario + ".mat"), ...
+    "result", "sol");
 
 
 
