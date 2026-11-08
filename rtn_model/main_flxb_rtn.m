@@ -5,11 +5,13 @@
 
 %% read parameters & define variables
 yalmip("clear");
+root = fileparts(fileparts(mfilename("fullpath")));
+addpath(fullfile(root, "rtn_model"));
 
 delta = 5 / 60;% 1 hour
 
 % load the original parameters
-load(".\parameter_setting\param_zhang_2017.mat");
+load(fullfile(root, "parameter_setting", "param_zhang_2017.mat"));
 
 
 % NOF_HEAT 如果不存在，则设置为 3
@@ -82,13 +84,18 @@ E_T = sum((1 - R_RT(index_resource_device(2 : end), 2 : end)) .* temp) * delta +
 cost = E_T * price;
 
 %% solve
-TimeLimit = 15000;
+if ~exist("TIME_LIMIT", "var")
+    TIME_LIMIT = 15000;
+end
 
 % set the solver, time limit, and optimality gap
 ops = sdpsettings('debug',1,'solver','GUROBI', 'verbose', 1,  ...
-    'gurobi.TimeLimit', TimeLimit, 'gurobi.MIPGap', gap);
-ops.gurobi.TuneTimeLimit = TimeLimit;
+    'gurobi.TimeLimit', TIME_LIMIT, 'gurobi.MIPGap', gap);
+ops.gurobi.TuneTimeLimit = TIME_LIMIT;
 sol = optimize(cons, cost, ops);
+if sol.problem ~= 0
+    error("Scheduling:SolverFailed", "Gurobi failed: %s", sol.info);
+end
 
 % if sol.problem ~= 0
 %     % 这将打印无解的约束
@@ -101,7 +108,7 @@ sol = optimize(cons, cost, ops);
 % end
 
 %% save
-result = {};
+result = struct();
 result.E_T = value(E_T);
 result.N_IT = value(N_IT);
 result.R_RT = value(R_RT);
@@ -109,8 +116,9 @@ result.S_HT = value(S_HT);
 result.P_HT = value(P_HT);
 
 % save according to the day_index, NOF_HEAT, and gap
-save(".\results\flxb_rtn_day_" + day_index + "_heat_" + NOF_HEAT + "_gap_" + gap + ".mat", "result", "sol");
-
+save(fullfile(root, "results", ...
+    "flxb_rtn_day_" + day_index + "_heat_" + NOF_HEAT + "_gap_" + gap + ".mat"), ...
+    "result", "sol");
 
 
 
